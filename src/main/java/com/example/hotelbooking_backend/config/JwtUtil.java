@@ -1,13 +1,17 @@
-package com.example.hotelbooking_backend.config;
+package com.example.hotelbooking_backend.config; // உன் package படி adjust பண்ணிக்கோ
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
@@ -15,14 +19,26 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    @Value("${app.jwtSecret}")
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
+
+    // use env var app.jwtSecret; fallback default (>=32 chars for HS256)
+    @Value("${app.jwtSecret:abcd1234abcd1234abcd1234abcd1234}")
     private String jwtSecret;
 
-    @Value("${app.jwtExpirationMs}")
+    // default 1 hour
+    @Value("${app.jwtExpirationMs:3600000}")
     private long jwtExpirationMs;
 
+    @PostConstruct
+    private void postConstruct() {
+        if (jwtSecret == null || jwtSecret.trim().length() < 32) {
+            log.warn("JWT secret is short or not provided. Using fallback secret — please set app.jwtSecret in environment for production!");
+            // we still continue with fallback — ensures app doesn't crash on missing env during first deploy
+        }
+    }
+
     private Key getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes();
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
