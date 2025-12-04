@@ -1,4 +1,4 @@
-package com.example.hotelbooking_backend.config; // உன் package படி adjust பண்ணிக்கோ
+package com.example.hotelbooking_backend.config; 
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
