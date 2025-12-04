@@ -4,4 +4,3 @@
 *.iml
 *.log
 .env
-src/main/resources/application.properties 

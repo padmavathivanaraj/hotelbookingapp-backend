@@ -35,12 +35,26 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // public endpoints
+                // root & error pages
+                .requestMatchers("/", "/error").permitAll()
+
+                // swagger / openapi
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html"
+                ).permitAll()
+
+                // public auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+
+                // public read-only hotel/room endpoints
                 .requestMatchers(HttpMethod.GET, "/api/hotels/**", "/api/rooms/**").permitAll()
-                // allow error page so exceptions are not masked as 403
-                .requestMatchers("/error").permitAll()
-                // everything else needs auth
+
+                // preflight CORS requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // everything else needs authentication (JWT)
                 .anyRequest().authenticated()
             )
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -58,21 +72,33 @@ public class SecurityConfig {
         return provider;
     }
 
-    @Bean public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
-    public AuthenticationManager authenticationManager(org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration cfg)
-            throws Exception {
+    public AuthenticationManager authenticationManager(
+            org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration cfg
+    ) throws Exception {
         return cfg.getAuthenticationManager();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000")); // add frontends you use
+
+        // TODO: add your deployed frontend URL here
+        c.setAllowedOrigins(List.of(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://hotelbookingapp-frontend.netlify.app"  // example – change to your real frontend URL
+        ));
+
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", c);
         return src;
